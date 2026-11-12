@@ -1,9 +1,9 @@
 class TelegramDumper < Formula
   desc "Terminal client for downloading permitted media from Telegram chats"
   homepage "https://github.com/QenTerra/telegram-dumper"
-  url "https://github.com/QenTerra/telegram-dumper/archive/e2d3025c5c52e32939406db2781c388cfd06082a.tar.gz"
-  sha256 "3e34b289fe1b29532f31e0d0d40c2ddc0e6f108f28df2942cbc747b9294e9b44"
-  version "0.2.0"
+  url "https://github.com/QenTerra/telegram-dumper/archive/08be1b6b07ef80b14f36a75519fb087179132fee.tar.gz"
+  sha256 "1b8adc2efa2c33f10c410797b556e10eba0d77947d3ac604aa0584ee75ece28a"
+  version "0.2.1"
   license "MIT"
 
   depends_on "python@3.12"
