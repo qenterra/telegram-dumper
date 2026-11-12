@@ -7,10 +7,12 @@ import sys
 from pathlib import Path
 
 import keyring
+from rich import box
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 from rich.prompt import Confirm, Prompt
+from rich.text import Text
 
 from telegram_dumper import __version__
 from telegram_dumper.accounts import AccountRegistry
@@ -25,6 +27,11 @@ from telegram_dumper.telegram_client import (
 
 
 console = Console()
+AUTHOR = "Nikita Melnychenko · QenTerra"
+ASCII_LOGO = r"""      /\
+     /  \__
+ ___/   ___/
+\______/"""
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -62,7 +69,7 @@ def _parser() -> argparse.ArgumentParser:
     download.add_argument(
         "--out",
         type=Path,
-        help="Save folder; defaults to the saved setting or ./telegram-downloads",
+        help="Save folder; defaults to the saved setting or ~/Downloads/telegram-dumper",
     )
     download.add_argument(
         "--extensions",
@@ -90,45 +97,68 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _brand_header(section: str, account: str | None = None) -> Panel:
+    details = Text()
+    details.append("TELEGRAM DUMPER\n", style="bold cyan")
+    details.append(f"Версия {__version__}\n", style="white")
+    details.append(f"Автор: {AUTHOR}\n\n", style="dim")
+    details.append(section, style="bold white")
+    if account is not None:
+        details.append(f"\nАккаунт: {account}", style="dim")
+    content = Table.grid(padding=(0, 2))
+    content.add_column(no_wrap=True)
+    content.add_column()
+    content.add_row(Text(ASCII_LOGO, style="bold bright_cyan"), details)
+    return Panel(content, border_style="bright_blue", box=box.ROUNDED, padding=(1, 2))
+
+
 def _guided_download() -> int:
-    settings = UserSettings().load()
+    console.print(_brand_header("Загрузка из Telegram"))
     console.print(
         Panel(
-            "[bold cyan]telegram-dumper[/bold cyan]\n"
-            "[dim]A guided Telegram media downloader[/dim]\n\n"
-            "[bold]1[/bold] Paste a public Telegram channel or message link.\n"
-            "[bold]2[/bold] Choose file categories, or keep [cyan]all[/cyan].\n"
-            "[bold]3[/bold] Choose a local save folder. Files keep their original format.\n\n"
-            "Use [cyan]telegram-dumper accounts[/cyan] to add or switch accounts.\n"
-            "Protected chats and messages are always skipped; invite links are not joined.",
-            title="[bold cyan]Telegram Dumper[/bold cyan]",
-            border_style="cyan",
+            "Пришлите ссылку на публичный канал или сообщение.\n"
+            "Ссылка проверяется сразу, остальные параметры спрошу только если она подходит.\n"
+            "Примеры: https://t.me/channelname · https://t.me/channelname/123",
+            title="[bold cyan]Начало загрузки[/bold cyan]",
+            border_style="bright_blue",
+            box=box.ROUNDED,
             expand=False,
         )
     )
+    source_text = Prompt.ask("[bold cyan]Ссылка[/bold cyan]")
+    try:
+        parse_source(source_text)
+    except ValueError as exc:
+        console.print(
+            Panel(
+                f"[bold red]Неверная ссылка[/bold red]\n{exc}",
+                border_style="red",
+                box=box.ROUNDED,
+                expand=False,
+            )
+        )
+        return 2
+
+    settings = UserSettings().load()
     console.print(
-        "[dim]Examples: https://t.me/channelname or https://t.me/channelname/123[/dim]"
-    )
-    source_text = Prompt.ask("[bold]Telegram link[/bold]")
-    console.print(
-        f"[dim]Available: {', '.join(MEDIA_CATEGORIES)}. Use commas to combine categories.[/dim]"
+        f"[dim]Категории: {', '.join(MEDIA_CATEGORIES)}. Несколько значений разделяйте запятыми.[/dim]"
     )
     selected = Prompt.ask(
-        "[bold]File types[/bold]", default=",".join(settings["media_types"])
+        "[bold]Категории файлов[/bold]", default=",".join(settings["media_types"])
     )
     console.print(
-        "[dim]Optional extensions: .png, .jpg, .zip, .pdf. Use all to keep every format.[/dim]"
+        "[dim]Расширения можно указать отдельно: .png, .jpg, .zip, .pdf. all — без фильтра.[/dim]"
     )
     extensions = Prompt.ask(
-        "[bold]Extensions[/bold]", default=",".join(settings["extensions"])
+        "[bold]Расширения[/bold]", default=",".join(settings["extensions"])
     )
     out = Path(
-        Prompt.ask("[bold]Save folder[/bold]", default=settings["output_directory"])
+        Prompt.ask("[bold]Папка загрузок[/bold]", default=settings["output_directory"])
     )
     active = AccountRegistry().active()
     account_id = str(active["account_id"]) if active else None
     if active:
-        console.print(f"[dim]Active account: {active['display_name']}[/dim]")
+        console.print(f"[dim]Активный аккаунт: {active['display_name']}[/dim]")
     return _download(source_text, selected, out, None, account_id, extensions)
 
 
@@ -137,132 +167,165 @@ def _clear_menu() -> None:
         console.clear()
 
 
-def _menu(title: str, rows: list[tuple[str, str]]) -> None:
-    table = Table(title=title, header_style="bold cyan", border_style="dim")
-    table.add_column("Key", style="bold cyan", justify="center", width=5)
-    table.add_column("Action")
+def _menu(title: str, rows: list[tuple[str, str]], hint: str) -> None:
+    table = Table(
+        title=title,
+        show_header=False,
+        border_style="bright_blue",
+        box=box.ROUNDED,
+        padding=(0, 1),
+        expand=False,
+    )
+    table.add_column("Key", style="bold bright_cyan", justify="center", width=5)
+    table.add_column("Action", style="white")
     for key, action in rows:
-        table.add_row(key, action)
+        table.add_row(f"[{key}]", action)
     console.print(table)
+    console.print(f"[dim]{hint}[/dim]")
 
 
-def _pause() -> None:
-    Prompt.ask("[dim]Press Enter to return[/dim]", default="")
+def _pause() -> bool:
+    return Prompt.ask("[dim]Enter — назад · q — выход[/dim]", default="").strip().lower() == "q"
 
 
-def _accounts_menu() -> None:
+def _accounts_menu() -> bool:
     registry = AccountRegistry()
     while True:
         _clear_menu()
+        console.print(_brand_header("Аккаунты Telegram"))
         _show_accounts()
         _menu(
-            "Accounts",
+            "Аккаунты",
             [
-                ("1", "Add account"),
-                ("2", "Switch active account"),
-                ("3", "Remove account"),
-                ("0", "Back"),
+                ("1", "Добавить аккаунт"),
+                ("2", "Выбрать активный"),
+                ("3", "Удалить аккаунт"),
+                ("0", "Назад"),
+                ("q", "Выход"),
             ],
+            "Введите номер · 0 — назад · q — выход",
         )
-        choice = Prompt.ask("[bold]Choose[/bold]", choices=["1", "2", "3", "0"])
+        choice = Prompt.ask("[bold cyan]Выбор[/bold cyan]", choices=["1", "2", "3", "0", "q"])
+        if choice == "q":
+            return True
         if choice == "0":
-            return
+            return False
         if choice == "1":
             _manage_accounts("add", None)
-            _pause()
+            if _pause():
+                return True
         elif choice == "2":
             accounts = registry.all()
             if not accounts:
-                console.print("[yellow]No saved accounts yet.[/yellow]")
-                _pause()
+                console.print("[yellow]Сохранённых аккаунтов пока нет.[/yellow]")
+                if _pause():
+                    return True
                 continue
-            account_id = Prompt.ask("Account ID (0 to go back)")
+            account_id = Prompt.ask("ID аккаунта (0 — назад, q — выход)").strip()
+            if account_id.lower() == "q":
+                return True
             if account_id == "0":
                 continue
             _manage_accounts("select", account_id)
-            _pause()
+            if _pause():
+                return True
         else:
             accounts = registry.all()
             if not accounts:
-                console.print("[yellow]No saved accounts yet.[/yellow]")
-                _pause()
+                console.print("[yellow]Сохранённых аккаунтов пока нет.[/yellow]")
+                if _pause():
+                    return True
                 continue
-            account_id = Prompt.ask("Account ID to remove (0 to go back)")
+            account_id = Prompt.ask("ID аккаунта для удаления (0 — назад, q — выход)").strip()
+            if account_id.lower() == "q":
+                return True
             if account_id == "0":
                 continue
             _manage_accounts("remove", account_id)
-            _pause()
+            if _pause():
+                return True
 
 
-def _settings_menu() -> None:
+def _settings_menu() -> bool:
     settings = UserSettings()
     while True:
         _clear_menu()
         current = settings.load()
+        console.print(_brand_header("Настройки"))
         console.print(
             Panel(
-                f"[bold]Default file types[/bold]  {', '.join(current['media_types'])}\n"
-                f"[bold]Extensions[/bold]  {', '.join(current['extensions'])}\n"
-                f"[bold]Download folder[/bold]  {current['output_directory']}",
-                title="[bold cyan]Settings[/bold cyan]",
-                border_style="cyan",
+                f"[bold]Категории[/bold]  {', '.join(current['media_types'])}\n"
+                f"[bold]Расширения[/bold]  {', '.join(current['extensions'])}\n"
+                f"[bold]Папка загрузок[/bold]  {current['output_directory']}",
+                title="[bold cyan]Текущие настройки[/bold cyan]",
+                border_style="bright_blue",
+                box=box.ROUNDED,
                 expand=False,
             )
         )
         _menu(
-            "Preferences",
+            "Настройки загрузки",
             [
-                ("1", "Change file categories"),
-                ("2", "Change extensions"),
-                ("3", "Change download folder"),
-                ("0", "Back"),
+                ("1", "Изменить категории файлов"),
+                ("2", "Изменить расширения"),
+                ("3", "Изменить папку загрузок"),
+                ("0", "Назад"),
+                ("q", "Выход"),
             ],
+            "Введите номер · 0 — назад · q — выход",
         )
-        choice = Prompt.ask("[bold]Choose[/bold]", choices=["1", "2", "3", "0"])
+        choice = Prompt.ask("[bold cyan]Выбор[/bold cyan]", choices=["1", "2", "3", "0", "q"])
+        if choice == "q":
+            return True
         if choice == "0":
-            return
+            return False
         if choice == "1":
             console.print(
-                f"[dim]Available: {', '.join(sorted(ALLOWED_MEDIA_TYPES))}. "
-                "Choose all, or combine categories with commas.[/dim]"
+                f"[dim]Категории: {', '.join(sorted(ALLOWED_MEDIA_TYPES))}. "
+                "all или несколько значений через запятую.[/dim]"
             )
-            value = Prompt.ask("Default file types", default=",".join(current["media_types"]))
+            value = Prompt.ask("Категории", default=",".join(current["media_types"]))
             try:
                 updated = settings.update(media_types=value.split(","))
             except ValueError as exc:
-                console.print(f"[bold red]Error:[/bold red] {exc}")
-                _pause()
+                console.print(f"[bold red]Ошибка:[/bold red] {exc}")
+                if _pause():
+                    return True
             else:
                 console.print(
-                    f"[green]Default types saved: {', '.join(updated['media_types'])}[/green]"
+                    f"[green]Сохранены категории: {', '.join(updated['media_types'])}[/green]"
                 )
-                _pause()
+                if _pause():
+                    return True
         elif choice == "2":
             console.print(
-                "[dim]Type extensions with dots, separated by commas: .png,.jpg,.zip. "
-                "Use all for every format.[/dim]"
+                "[dim]Примеры: .png,.jpg,.zip. Введите расширения через запятую; all — любой формат.[/dim]"
             )
-            value = Prompt.ask("Default extensions", default=",".join(current["extensions"]))
+            value = Prompt.ask("Расширения", default=",".join(current["extensions"]))
             try:
                 updated = settings.update(extensions=value.split(","))
             except ValueError as exc:
-                console.print(f"[bold red]Error:[/bold red] {exc}")
-                _pause()
+                console.print(f"[bold red]Ошибка:[/bold red] {exc}")
+                if _pause():
+                    return True
             else:
                 console.print(
-                    f"[green]Default extensions saved: {', '.join(updated['extensions'])}[/green]"
+                    f"[green]Сохранены расширения: {', '.join(updated['extensions'])}[/green]"
                 )
-                _pause()
+                if _pause():
+                    return True
         else:
-            value = Prompt.ask("Default download folder", default=current["output_directory"])
+            value = Prompt.ask("Папка загрузок", default=current["output_directory"])
             try:
                 settings.update(output_directory=value)
             except ValueError as exc:
-                console.print(f"[bold red]Error:[/bold red] {exc}")
-                _pause()
+                console.print(f"[bold red]Ошибка:[/bold red] {exc}")
+                if _pause():
+                    return True
             else:
-                console.print("[green]Download folder saved.[/green]")
-                _pause()
+                console.print("[green]Папка загрузок сохранена.[/green]")
+                if _pause():
+                    return True
 
 
 def _home_menu() -> int:
@@ -272,37 +335,33 @@ def _home_menu() -> int:
     while True:
         _clear_menu()
         active = AccountRegistry().active()
-        account_label = active["display_name"] if active else "Not signed in"
-        console.print(
-            Panel(
-                "[bold cyan]Telegram Dumper[/bold cyan]\n"
-                "Download media from chats available to your Telegram account.\n"
-                f"[dim]Active account: {account_label}[/dim]",
-                border_style="cyan",
-                expand=False,
-            )
-        )
+        account_label = active["display_name"] if active else "Вход не выполнен"
+        console.print(_brand_header("Главное меню · загрузка и управление", account_label))
         _menu(
-            "Main menu",
+            "Главное меню",
             [
-                ("1", "Download from a link"),
-                ("2", "Telegram accounts"),
-                ("3", "Settings"),
-                ("0", "Exit"),
+                ("1", "Скачать из Telegram"),
+                ("2", "Аккаунты"),
+                ("3", "Настройки"),
+                ("0", "Выход"),
             ],
+            "Введите номер действия · в подменю 0 — назад, q — выход",
         )
-        choice = Prompt.ask("[bold]Choose[/bold]", choices=["1", "2", "3", "0"])
+        choice = Prompt.ask("[bold cyan]Выбор[/bold cyan]", choices=["1", "2", "3", "0"])
         if choice == "0":
-            console.print("[dim]Bye.[/dim]")
+            console.print("[dim]До встречи.[/dim]")
             return 0
         if choice == "1":
             _clear_menu()
             _guided_download()
-            _pause()
+            if _pause():
+                return 0
         elif choice == "2":
-            _accounts_menu()
+            if _accounts_menu():
+                return 0
         else:
-            _settings_menu()
+            if _settings_menu():
+                return 0
 
 
 def _download(
@@ -314,11 +373,11 @@ def _download(
     extensions_text: str | None = None,
 ) -> int:
     try:
+        source = parse_source(source_text)
         defaults = UserSettings().load()
         selected = selected or ",".join(defaults["media_types"])
         output = output or Path(defaults["output_directory"])
         extensions_text = extensions_text or ",".join(defaults["extensions"])
-        source = parse_source(source_text)
         categories = {item.strip().lower() for item in selected.split(",") if item.strip()}
         valid = set(MEDIA_CATEGORIES) | {"all"}
         invalid = categories - valid
@@ -349,19 +408,25 @@ def _show_accounts() -> int:
     if not accounts:
         console.print(
             Panel(
-                "No saved accounts yet. Start a download to sign in, or run "
-                "[cyan]telegram-dumper accounts add[/cyan] to add one now.",
-                title="[bold cyan]Telegram accounts[/bold cyan]",
-                border_style="cyan",
+                "Сохранённых аккаунтов пока нет. Добавьте аккаунт из меню "
+                "или командой [cyan]telegram-dumper accounts add[/cyan].",
+                title="[bold cyan]Аккаунты Telegram[/bold cyan]",
+                border_style="bright_blue",
+                box=box.ROUNDED,
                 expand=False,
             )
         )
         return 0
     active = registry.active()
-    table = Table(title="Saved Telegram accounts", header_style="bold cyan", border_style="dim")
-    table.add_column("Active", justify="center")
-    table.add_column("Account")
-    table.add_column("Username")
+    table = Table(
+        title="Сохранённые аккаунты",
+        header_style="bold cyan",
+        border_style="bright_blue",
+        box=box.ROUNDED,
+    )
+    table.add_column("Активный", justify="center")
+    table.add_column("Аккаунт")
+    table.add_column("Имя пользователя")
     table.add_column("ID", style="dim")
     for account in accounts:
         is_active = active is not None and account["account_id"] == active["account_id"]
@@ -373,8 +438,8 @@ def _show_accounts() -> int:
         )
     console.print(table)
     console.print(
-        "[dim]Switch: telegram-dumper accounts select ID  ·  Add: telegram-dumper accounts add  ·  "
-        "Remove: telegram-dumper accounts remove ID[/dim]"
+        "[dim]Переключить: telegram-dumper accounts select ID · "
+        "Добавить: telegram-dumper accounts add · Удалить: telegram-dumper accounts remove ID[/dim]"
     )
     return 0
 
@@ -384,18 +449,18 @@ def _manage_accounts(action: str | None, account_id: str | None) -> int:
     try:
         if action == "add":
             new_id = run_add_account()
-            console.print(f"[green]Account {new_id} added and selected as active.[/green]")
+            console.print(f"[green]Аккаунт {new_id} добавлен и выбран активным.[/green]")
         elif action == "select":
             account = registry.select(account_id or "")
-            console.print(f"[green]Active account: {account['display_name']}.[/green]")
+            console.print(f"[green]Активный аккаунт: {account['display_name']}.[/green]")
         elif action == "remove":
             account = registry.get(account_id or "")
             if account is None:
                 raise ValueError(f"No saved Telegram account has ID {account_id}.")
             if not Confirm.ask(
-                f"Remove {account['display_name']} and its saved session?", default=False
+                f"Удалить аккаунт {account['display_name']} и сохранённую сессию?", default=False
             ):
-                console.print("No changes made.")
+                console.print("Изменений нет.")
                 return 0
             session_key = f"{account['api_id']}:{account['account_id']}"
             has_session = keyring.get_password(SESSION_KEYRING_SERVICE, session_key) is not None
@@ -410,25 +475,25 @@ def _manage_accounts(action: str | None, account_id: str | None) -> int:
                         registry.upsert(account, activate=was_active)
                     except Exception:
                         console.print(
-                            "[bold red]Session deletion failed and the account list could not be restored. "
-                            "The saved session was not confirmed removed.[/bold red]"
+                            "[bold red]Не удалось удалить сессию или восстановить список аккаунтов. "
+                            "Удаление сессии не подтверждено.[/bold red]"
                         )
                         return 2
                     console.print(
-                        "[bold red]Could not remove the session; the account list was restored.[/bold red]"
+                        "[bold red]Не удалось удалить сессию; список аккаунтов восстановлен.[/bold red]"
                     )
                     return 2
             console.print(
-                "[green]Account and saved session removed. API credentials remain in the system keyring.[/green]"
+                "[green]Аккаунт и сессия удалены. API-данные остались в системном хранилище.[/green]"
             )
         return _show_accounts()
     except (RuntimeError, ValueError, OSError) as exc:
-        console.print(f"[bold red]Error:[/bold red] {exc}")
+        console.print(f"[bold red]Ошибка:[/bold red] {exc}")
         return 2
     except Exception as exc:
         console.print(
-            f"[bold red]Account operation failed:[/bold red] {type(exc).__name__}. "
-            "Check the system credential store and retry."
+            f"[bold red]Не удалось выполнить действие с аккаунтом:[/bold red] {type(exc).__name__}. "
+            "Проверьте системное хранилище учётных данных и повторите попытку."
         )
         return 1
 

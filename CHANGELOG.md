@@ -4,6 +4,19 @@ All notable changes to telegram-dumper are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-12
+
+### Added
+
+- A Telegram-style ASCII header with version, author, and clearer menu navigation.
+- Chat and media-category subfolders under the download directory.
+- Kebab-case names for chat folders, category folders, and downloaded file stems.
+- Immediate link validation before asking for download options.
+
+### Changed
+
+- New downloads default to `~/Downloads/telegram-dumper`; the old default is migrated automatically.
+
 ## [0.2.0] - 2026-11-12
 
 ### Added

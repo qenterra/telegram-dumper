@@ -16,7 +16,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "schema_version": 1,
     "media_types": ["all"],
     "extensions": ["all"],
-    "output_directory": "telegram-downloads",
+    "output_directory": "~/Downloads/telegram-dumper",
 }
 ALLOWED_MEDIA_TYPES = {"photo", "video", "audio", "voice", "document", "all"}
 
@@ -79,6 +79,9 @@ class UserSettings:
             or not data["output_directory"].strip()
         ):
             raise RuntimeError(f"Settings at {self.path} have an unsupported format.")
+        if data["output_directory"] == "telegram-downloads":
+            data["output_directory"] = DEFAULT_SETTINGS["output_directory"]
+            self._write(data)
         return data
 
     def update(

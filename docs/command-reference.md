@@ -38,6 +38,11 @@ The home menu's Settings section saves default categories, extensions, and downl
 Use `--extensions .png,.jpg,.zip` to match those original file extensions directly. Omit the filter
 or use `all` to include every file format.
 
+By default, files go under `~/Downloads/telegram-dumper/<chat-name-id>/<category>/`, sorted into
+kebab-case folders such as `фото`, `видео`, `аудио`, and `файлы`. Downloaded filename stems also
+use kebab-case, with the original file extension preserved in lowercase. In the interactive download
+flow, the link is validated before category, extension, or folder prompts appear.
+
 ## Output and exit status
 
 Progress and status messages are human-readable terminal output. Exit code `0` means the scan

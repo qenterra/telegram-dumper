@@ -41,7 +41,7 @@ session strings.
 
 - `--types`: one or more comma-separated categories: `photo`, `video`, `audio`, `voice`, `document`,
   or `all`.
-- `--out`: local output folder. Defaults to `telegram-downloads` in the current directory.
+- `--out`: local output folder. Defaults to `~/Downloads/telegram-dumper`.
 - `--limit`: maximum number of messages to scan.
 - `--account`: saved account ID to use for one download instead of the active account.
 - `--extensions`: comma-separated filename extensions, such as `.png,.jpg,.zip`; defaults to `all`.
@@ -50,3 +50,8 @@ The interactive menu's Settings section stores default media categories, file ex
 download folder in `settings.json` under the user's application configuration directory. This file
 contains preferences only, not Telegram credentials or session data. Command-line options override
 interactive defaults.
+
+Downloaded files are placed in `<download folder>/<chat-name-id>/<category>/`. Chat folder names,
+category folders (`фото`, `видео`, `аудио`, `аудио/голосовые-сообщения`, and `файлы`), and downloaded
+filename stems use kebab-case. File extensions are preserved in lowercase. A previously saved default
+of `telegram-downloads` is migrated to `~/Downloads/telegram-dumper`; a custom folder is kept.

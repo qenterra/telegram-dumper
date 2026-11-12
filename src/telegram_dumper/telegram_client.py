@@ -6,6 +6,7 @@ import asyncio
 import os
 import re
 import sys
+import unicodedata
 import webbrowser
 from pathlib import Path
 
@@ -19,12 +20,19 @@ from telethon.sessions import StringSession
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import User
 
-from telegram_dumper.accounts import AccountRegistry
+from telegram_dumper.accounts import AccountRegistry, restrict_permissions
 from telegram_dumper.protection import has_content_protection
 from telegram_dumper.source import TelegramSource
 
 
 MEDIA_CATEGORIES = ("photo", "video", "audio", "voice", "document")
+CATEGORY_FOLDERS = {
+    "photo": "фото",
+    "video": "видео",
+    "audio": "аудио",
+    "voice": "аудио/голосовые-сообщения",
+    "document": "файлы",
+}
 API_CREDENTIALS_URL = "https://my.telegram.org/apps"
 API_KEYRING_SERVICE = "telegram-dumper-api"
 SESSION_KEYRING_SERVICE = "telegram-dumper-session"
@@ -105,9 +113,38 @@ def _api_credentials(console: Console, preferred_api_id: str | None) -> tuple[in
 
 
 def _safe_name(name: str | None, message_id: int) -> str:
-    candidate = (name or f"telegram-{message_id}").replace("/", "_").replace("\\", "_")
-    candidate = re.sub(r"[^\w.() -]", "_", candidate, flags=re.UNICODE).strip(" .")
-    return candidate[:180] or f"telegram-{message_id}"
+    basename = (name or f"telegram-{message_id}").replace("\\", "/").rsplit("/", 1)[-1]
+    suffix = "".join(Path(basename).suffixes).casefold()
+    stem = basename[: -len(suffix)] if suffix else basename
+    safe_stem = _kebab_case(stem) or f"telegram-{message_id}"
+    safe_suffix = re.sub(r"[^a-z0-9.+_-]", "", suffix)
+    maximum_stem_length = max(1, 180 - len(safe_suffix))
+    safe_stem = safe_stem[:maximum_stem_length].strip("-") or f"telegram-{message_id}"
+    return f"{safe_stem}{safe_suffix}"
+
+
+def _kebab_case(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    candidate = re.sub(r"[^\w]+", "-", normalized, flags=re.UNICODE).strip("-_")
+    candidate = re.sub(r"[-_]+", "-", candidate)
+    return candidate[:140].strip("-")
+
+
+def _chat_folder_name(chat: object, fallback: str) -> str:
+    label = getattr(chat, "title", None)
+    if not label:
+        label = " ".join(
+            part
+            for part in (getattr(chat, "first_name", None), getattr(chat, "last_name", None))
+            if part
+        )
+    if not label:
+        label = getattr(chat, "username", None) or fallback
+    chat_id = getattr(chat, "id", None)
+    safe_label = _kebab_case(str(label)) or "telegram-chat"
+    if chat_id is not None:
+        safe_label = f"{safe_label}-{abs(int(chat_id))}"
+    return safe_label[:160].strip("-")
 
 
 class TelegramDownloader:
@@ -220,6 +257,8 @@ class TelegramDownloader:
                         "Could not verify private-chat protection; refusing to download from this chat."
                     ) from exc
 
+            chat_folder = _chat_folder_name(chat, source.peer)
+
             messages = [source.message_id] if source.message_id is not None else None
             downloaded = skipped = 0
             async with Progress(
@@ -265,7 +304,15 @@ class TelegramDownloader:
                     ):
                         continue
                     filename = _safe_name(original_name, message.id)
-                    target = output_dir / filename
+                    category_folder = CATEGORY_FOLDERS[category]
+                    target_directory = output_dir / chat_folder
+                    target_directory.mkdir(exist_ok=True, mode=0o700)
+                    restrict_permissions(target_directory, directory=True)
+                    for folder in category_folder.split("/"):
+                        target_directory /= folder
+                        target_directory.mkdir(exist_ok=True, mode=0o700)
+                        restrict_permissions(target_directory, directory=True)
+                    target = target_directory / filename
                     if target.exists():
                         self.console.print(f"[dim]Skipped existing file {filename}[/dim]")
                         skipped += 1

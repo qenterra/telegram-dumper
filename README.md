@@ -39,8 +39,10 @@ telegram-dumper
 See the [installation guide](docs/installation.md) for updates and removal.
 The menu provides download, account, and settings sections, with a back option in each submenu.
 You can set default file categories, extensions such as `.png`, `.jpg`, or `.zip`, and the download
-folder. Settings are saved locally. On first sign-in, the CLI can open Telegram's API setup page,
-collect the API ID/hash, and store them securely.
+folder. By default, downloads go to `~/Downloads/telegram-dumper/<chat-name-id>/<category>/`, with
+kebab-case folders such as `фото`, `видео`, `аудио`, and `файлы`; downloaded filenames also use
+kebab-case while keeping their file extensions. Settings are saved locally. On first sign-in, the
+CLI can open Telegram's API setup page, collect the API ID/hash, and store them securely.
 
 Start the guided terminal flow:
 
