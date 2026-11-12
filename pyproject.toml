@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=75,<81"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "telegram-dumper"
+version = "0.1.0"
+description = "A terminal client for downloading permitted media and files from Telegram chats."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "LicenseRef-Proprietary"
+dependencies = [
+  "Telethon>=1.45,<2",
+  "keyring>=25,<26",
+  "rich>=14,<15",
+]
+
+[project.scripts]
+telegram-dumper = "telegram_dumper.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
