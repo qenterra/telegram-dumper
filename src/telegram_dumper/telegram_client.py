@@ -110,6 +110,8 @@ class TelegramDownloader:
                         continue
 
                     file_info = message.file
+                    if file_info is None:
+                        continue
                     mime = (getattr(file_info, "mime_type", None) or "").lower()
                     if message.photo:
                         category = "photo"
