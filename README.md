@@ -23,8 +23,28 @@ Owner: Nikita Melnychenko (QenTerra).
 
 ## Install and quick start
 
+Install `pipx` and GitHub CLI (`gh`), then sign in to GitHub with an account that can read this
+private repository. On macOS with Homebrew:
+
 ```sh
-python3 -m pip install -e .
+brew install pipx gh
+pipx ensurepath
+```
+
+Open a new terminal after `pipx ensurepath`, then install and run the CLI with:
+
+```sh
+gh auth setup-git && pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'
+telegram-dumper
+```
+
+`gh auth setup-git` configures Git to use your existing GitHub CLI login when pipx fetches the
+private repository. It does not expose or put your token in the command. To update or remove the
+installation later:
+
+```sh
+pipx upgrade telegram-dumper
+pipx uninstall telegram-dumper
 ```
 
 Before the first run, set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the shell. Telegram will ask

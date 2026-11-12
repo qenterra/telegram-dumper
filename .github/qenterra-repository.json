@@ -101,7 +101,7 @@
     "standard_version": "2.0.0"
   },
   "homepage_url": "https://github.com/QenTerra/telegram-dumper",
-  "install_command": "python3 -m pip install -e .",
+  "install_command": "gh auth setup-git && pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'",
   "license": "Proprietary",
   "merge_strategy": "squash",
   "minimum_requirements": "Python 3.12 or newer, a Telegram API application ID and hash, and a Telegram account permitted to access the source chat.",
