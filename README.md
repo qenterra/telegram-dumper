@@ -6,9 +6,10 @@ A terminal client for downloading media from Telegram chats your account can acc
 
 ## Status and requirements
 
-Early development. This is a public QenTerra repository under the MIT License. No package or binary
-release is available. Requires Python 3.12+, a Telegram API application ID and hash from
-[my.telegram.org](https://my.telegram.org), and an account that can access the source chat.
+Early development. This is a public QenTerra repository under the MIT License. Homebrew builds the
+command from source; no prebuilt binary is released. Requires Python 3.12+, a Telegram API
+application ID and hash from [my.telegram.org](https://my.telegram.org), and an account that can
+access the source chat.
 
 Owner: Nikita Melnychenko (QenTerra).
 
@@ -23,30 +24,21 @@ Owner: Nikita Melnychenko (QenTerra).
 
 ## Install and quick start
 
-Install `pipx` if it is not already available. On macOS with Homebrew:
+Install directly with Homebrew. This taps the formula from this repository and installs it:
 
 ```sh
-brew install pipx
-pipx ensurepath
+brew tap qenterra/telegram-dumper https://github.com/QenTerra/telegram-dumper.git && brew install qenterra/telegram-dumper/telegram-dumper
 ```
 
-Open a new terminal after `pipx ensurepath`, then install the latest version and start it:
+Then start the guided setup:
 
 ```sh
-pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'
 telegram-dumper
 ```
 
-The full [installation guide](docs/installation.md) includes setup, updates, and removal. To update
-or remove the installation later:
-
-```sh
-pipx upgrade telegram-dumper
-pipx uninstall telegram-dumper
-```
-
-Before the first run, set `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` in the shell. Telegram will ask
-for the account login code and, if enabled, the two-step verification password.
+See the [installation guide](docs/installation.md) for updates, removal, and the pipx alternative.
+On first run, the CLI can open Telegram's API setup page, collect the API ID/hash, and store them
+securely. It then guides you through Telegram account sign-in.
 
 Start the guided terminal flow:
 
@@ -69,8 +61,9 @@ Protected chats and messages are skipped. The tool refuses downloads from a priv
 cannot verify the chat's protection state. It does not attempt to bypass restrictions on saving,
 forwarding, or copying content. Use it only for material you have the right to save.
 
-Telegram credentials and session data are not written to the repository. The application stores
-session data in the operating-system credential store. Downloaded files remain in the selected local
+Telegram API credentials and account sessions are not written to the repository; they are stored in
+the operating-system credential store. A local configuration file keeps only account identifiers,
+display names, usernames, and the selected active account. Downloaded files remain in the selected
 folder and are not sent elsewhere by the application.
 
 ## Data and recovery

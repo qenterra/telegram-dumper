@@ -6,6 +6,7 @@
     "tests",
     "scripts",
     "docs",
+    "Formula",
     "pyproject.toml"
   ],
   "branch_prefix": "qenterra/",
@@ -43,6 +44,14 @@
       "path_or_setting": "src/telegram_dumper/telegram_client.py",
       "reason": "The module is imported by Python using its underscore-containing identifier.",
       "review_trigger": "Recheck if this module is renamed or the import contract changes.",
+      "rule": "path-naming"
+    },
+    {
+      "approval_source": "Homebrew formula layout",
+      "owner": "@qenterra",
+      "path_or_setting": "Formula",
+      "reason": "Homebrew requires the exact Formula directory spelling for formula discovery.",
+      "review_trigger": "Recheck if Homebrew changes its formula directory contract.",
       "rule": "path-naming"
     },
     {
@@ -109,7 +118,7 @@
     "standard_version": "2.0.0"
   },
   "homepage_url": "https://github.com/QenTerra/telegram-dumper",
-  "install_command": "pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'",
+  "install_command": "brew tap qenterra/telegram-dumper https://github.com/QenTerra/telegram-dumper.git && brew install qenterra/telegram-dumper/telegram-dumper",
   "license": "MIT",
   "merge_strategy": "squash",
   "minimum_requirements": "Python 3.12 or newer, a Telegram API application ID and hash, and a Telegram account permitted to access the source chat.",

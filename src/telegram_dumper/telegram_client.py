@@ -5,21 +5,103 @@ from __future__ import annotations
 import asyncio
 import os
 import re
+import sys
+import webbrowser
 from pathlib import Path
 
 import keyring
 from rich.console import Console
+from rich.panel import Panel
 from rich.progress import BarColumn, DownloadColumn, Progress, TextColumn, TimeRemainingColumn
+from rich.prompt import Confirm, Prompt
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from telethon.tl.functions.users import GetFullUserRequest
 from telethon.tl.types import User
 
+from telegram_dumper.accounts import AccountRegistry
 from telegram_dumper.protection import has_content_protection
 from telegram_dumper.source import TelegramSource
 
 
 MEDIA_CATEGORIES = ("photo", "video", "audio", "voice", "document")
+API_CREDENTIALS_URL = "https://my.telegram.org/apps"
+API_KEYRING_SERVICE = "telegram-dumper-api"
+SESSION_KEYRING_SERVICE = "telegram-dumper-session"
+
+
+def _api_credentials(console: Console, preferred_api_id: str | None) -> tuple[int, str]:
+    environment_api_id = os.environ.get("TELEGRAM_API_ID", "").strip()
+    environment_api_hash = os.environ.get("TELEGRAM_API_HASH", "").strip()
+    if environment_api_hash and not environment_api_id:
+        raise RuntimeError(
+            "Set TELEGRAM_API_ID together with TELEGRAM_API_HASH so the API hash is stored under the correct application ID."
+        )
+    if preferred_api_id and environment_api_id and environment_api_id != preferred_api_id:
+        raise RuntimeError(
+            "The selected account uses a different API ID. Unset TELEGRAM_API_ID or select an account registered to that API ID."
+        )
+    api_id_text = preferred_api_id or environment_api_id
+    try:
+        if not api_id_text:
+            api_id_text = keyring.get_password(API_KEYRING_SERVICE, "active-api-id") or ""
+        api_hash = environment_api_hash
+        if api_id_text and not api_hash:
+            api_hash = keyring.get_password(API_KEYRING_SERVICE, api_id_text) or ""
+    except Exception as exc:
+        raise RuntimeError(
+            "The system credential store is unavailable; refusing to handle API credentials without it."
+        ) from exc
+
+    if not api_id_text or not api_hash:
+        if not sys.stdin.isatty():
+            raise RuntimeError(
+                "Telegram API credentials are missing. Run `telegram-dumper` in an interactive "
+                "terminal to open the setup page and save them, or set TELEGRAM_API_ID and "
+                "TELEGRAM_API_HASH."
+            )
+        console.print(
+            Panel(
+                "This client uses Telegram's MTProto API to read chats available to your account.\n"
+                "Get an API ID and API hash from [link=https://my.telegram.org/apps]my.telegram.org/apps[/link].\n"
+                "The hash is entered privately and saved in the system credential store.",
+                title="[bold cyan]Telegram API setup[/bold cyan]",
+                border_style="cyan",
+                expand=False,
+            )
+        )
+        if Confirm.ask("Open the Telegram API setup page in your browser?", default=True):
+            try:
+                opened = webbrowser.open(API_CREDENTIALS_URL)
+            except Exception:
+                opened = False
+            if not opened:
+                console.print(
+                    f"Open this link manually: [link={API_CREDENTIALS_URL}]"
+                    f"{API_CREDENTIALS_URL}[/link]"
+                )
+        if not api_id_text:
+            api_id_text = Prompt.ask("API ID").strip()
+
+    try:
+        api_id = int(api_id_text)
+    except ValueError as exc:
+        raise RuntimeError("The Telegram API ID must be an integer.") from exc
+    if api_id <= 0:
+        raise RuntimeError("The Telegram API ID must be greater than zero.")
+    if not api_hash and sys.stdin.isatty():
+        api_hash = Prompt.ask("API hash", password="*").strip()
+    if not api_hash:
+        raise RuntimeError("The Telegram API hash cannot be empty.")
+
+    try:
+        keyring.set_password(API_KEYRING_SERVICE, "active-api-id", str(api_id))
+        keyring.set_password(API_KEYRING_SERVICE, str(api_id), api_hash)
+    except Exception as exc:
+        raise RuntimeError(
+            "Could not save Telegram API credentials to the system credential store."
+        ) from exc
+    return api_id, api_hash
 
 
 def _safe_name(name: str | None, message_id: int) -> str:
@@ -29,24 +111,30 @@ def _safe_name(name: str | None, message_id: int) -> str:
 
 
 class TelegramDownloader:
-    def __init__(self, console: Console) -> None:
-        try:
-            self.api_id = int(os.environ["TELEGRAM_API_ID"])
-            self.api_hash = os.environ["TELEGRAM_API_HASH"]
-        except (KeyError, ValueError) as exc:
-            raise RuntimeError(
-                "Set TELEGRAM_API_ID and TELEGRAM_API_HASH from my.telegram.org."
-            ) from exc
-        if not self.api_hash:
-            raise RuntimeError("TELEGRAM_API_HASH cannot be empty.")
+    def __init__(self, console: Console, account_id: str | None = None) -> None:
         self.console = console
+        self.registry = AccountRegistry()
+        saved_account = self.registry.get(account_id) if account_id else self.registry.active()
+        if account_id and saved_account is None:
+            raise RuntimeError(f"No saved Telegram account has ID {account_id}.")
+        self.selected_account_id = (
+            str(saved_account["account_id"]) if saved_account is not None else None
+        )
+        preferred_api_id = str(saved_account["api_id"]) if saved_account is not None else None
+        self.api_id, self.api_hash = _api_credentials(console, preferred_api_id)
         try:
-            session = keyring.get_password("telegram-dumper", str(self.api_id)) or ""
+            session_key = f"{self.api_id}:{self.selected_account_id}" if self.selected_account_id else ""
+            session = (
+                keyring.get_password(SESSION_KEYRING_SERVICE, session_key) or ""
+                if session_key
+                else ""
+            )
         except Exception as exc:
             raise RuntimeError(
                 "The system credential store is unavailable; refusing to keep an unencrypted session."
             ) from exc
         self.client = TelegramClient(StringSession(session), self.api_id, self.api_hash)
+        self.has_saved_session = bool(session)
 
     async def run(
         self,
@@ -56,15 +144,56 @@ class TelegramDownloader:
         limit: int | None = None,
     ) -> tuple[int, int]:
         output_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
-        await self.client.start()
+        if not self.has_saved_session and not sys.stdin.isatty():
+            raise RuntimeError(
+                "This Telegram account has no saved login session. Run the command in an interactive terminal to sign in."
+            )
+        if not self.has_saved_session:
+            self.console.print(
+                Panel(
+                    "Enter the account's login code when Telegram prompts. If two-step verification "
+                    "is enabled, enter that password too. The session is saved in your system "
+                    "credential store for later runs.",
+                    title="[bold cyan]Sign in to Telegram[/bold cyan]",
+                    border_style="cyan",
+                    expand=False,
+                )
+            )
         try:
+            await self.client.start()
+            me = await self.client.get_me()
+            if me is None:
+                raise RuntimeError("Telegram did not return the signed-in account.")
+            actual_account_id = str(me.id)
+            if (
+                self.selected_account_id is not None
+                and actual_account_id != self.selected_account_id
+            ):
+                raise RuntimeError(
+                    "The signed-in Telegram account does not match the selected saved account. "
+                    "Use `telegram-dumper accounts` to choose another account."
+                )
             try:
                 keyring.set_password(
-                    "telegram-dumper", str(self.api_id), self.client.session.save()
+                    SESSION_KEYRING_SERVICE,
+                    f"{self.api_id}:{actual_account_id}",
+                    self.client.session.save(),
+                )
+                display_name = " ".join(
+                    part for part in (me.first_name, me.last_name) if part
+                ) or me.username or f"Telegram account {actual_account_id}"
+                self.registry.upsert(
+                    {
+                        "account_id": actual_account_id,
+                        "api_id": str(self.api_id),
+                        "display_name": display_name,
+                        "username": me.username or "",
+                    },
+                    activate=self.selected_account_id is None,
                 )
             except Exception as exc:
                 raise RuntimeError(
-                    "Could not save the Telegram session to the system credential store."
+                    "Could not save the Telegram account and session safely."
                 ) from exc
 
             if source.peer.lstrip("-").isdigit():
@@ -161,7 +290,50 @@ def run_download(
     output_dir: Path,
     categories: set[str],
     limit: int | None = None,
+    account_id: str | None = None,
 ) -> tuple[int, int]:
     console = Console()
-    downloader = TelegramDownloader(console)
+    downloader = TelegramDownloader(console, account_id)
     return asyncio.run(downloader.run(source, output_dir, categories, limit))
+
+
+async def _add_account(console: Console) -> str:
+    api_id, api_hash = _api_credentials(console, None)
+    client = TelegramClient(StringSession(), api_id, api_hash)
+    console.print(
+        Panel(
+            "A new Telegram account will be added. Enter its phone number, login code, and, if "
+            "enabled, two-step verification password when prompted.",
+            title="[bold cyan]Add Telegram account[/bold cyan]",
+            border_style="cyan",
+            expand=False,
+        )
+    )
+    try:
+        await client.start()
+        me = await client.get_me()
+        if me is None:
+            raise RuntimeError("Telegram did not return the signed-in account.")
+        account_id = str(me.id)
+        display_name = " ".join(part for part in (me.first_name, me.last_name) if part)
+        account = {
+            "account_id": account_id,
+            "api_id": str(api_id),
+            "display_name": display_name or me.username or f"Telegram account {account_id}",
+            "username": me.username or "",
+        }
+        keyring.set_password(
+            SESSION_KEYRING_SERVICE,
+            f"{api_id}:{account_id}",
+            client.session.save(),
+        )
+        AccountRegistry().upsert(account, activate=True)
+        return account_id
+    finally:
+        await client.disconnect()
+
+
+def run_add_account() -> str:
+    if not sys.stdin.isatty():
+        raise RuntimeError("Adding a Telegram account requires an interactive terminal.")
+    return asyncio.run(_add_account(Console()))

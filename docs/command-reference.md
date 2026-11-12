@@ -3,7 +3,10 @@
 ## Syntax
 
 ```text
-telegram-dumper [--version] [download <link> [--types <list>] [--out <folder>] [--limit <count>]]
+telegram-dumper [--version]
+telegram-dumper
+telegram-dumper accounts [add | select <account-id> | remove <account-id>]
+telegram-dumper download <link> [--types <list>] [--out <folder>] [--limit <count>] [--account <account-id>]
 ```
 
 Run `telegram-dumper` without a command to open the guided terminal flow.
@@ -13,11 +16,22 @@ Run `telegram-dumper` without a command to open the guided terminal flow.
 | Command | Purpose | Destructive |
 | --- | --- | --- |
 | `download <link>` | Download matching files from a chat or one message | No; creates files in the selected local folder |
+| `accounts` | List saved accounts and show which one is active | No |
+| `accounts add` | Sign in and save another Telegram account | No; adds a local credential-store session |
+| `accounts select <account-id>` | Make a saved account active for later downloads | No |
+| `accounts remove <account-id>` | Remove the local account record and its stored session | Yes; confirmation is required |
 | `--version` | Print the installed version | No |
+
+The first successful Telegram sign-in becomes the active account. Use `--account <account-id>` on
+`download` to use another saved account for one run without changing the active selection.
 
 `download` accepts HTTPS `t.me` and `telegram.me` channel/chat links, including direct message
 links. A private `/c/` message link works only when the signed-in account has access and the chat is
 present in its Telegram dialogs. Invite links are not joined automatically.
+
+On first use, the guided flow can open Telegram's API application page. API hashes and account
+sessions are stored in the operating-system credential store. The local account list contains only
+account IDs, display names, usernames, and the active selection.
 
 ## Output and exit status
 
