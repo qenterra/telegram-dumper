@@ -393,10 +393,11 @@ def _download(
         console.print(f"[bold red]Error:[/bold red] {exc}")
         return 2
     except Exception as exc:
+        detail = f": {exc}" if str(exc) else " (no additional error message)"
         console.print(
-            f"[bold red]Telegram operation failed:[/bold red] {type(exc).__name__}. "
-            "Check the account's chat access and network connection, then retry."
+            f"[bold red]Telegram operation failed:[/bold red] {type(exc).__name__}{detail}"
         )
+        console.print_exception(show_locals=False)
         return 1
     console.print(f"Finished: {downloaded} downloaded, {skipped} skipped.")
     return 0

@@ -4,6 +4,11 @@ All notable changes to telegram-dumper are documented here. This project follows
 
 ## [Unreleased]
 
+### Changed
+
+- API hash input is visible while typing; the hash is still stored in the operating-system credential store.
+- Unexpected Telegram operation errors now show their exception details and traceback instead of a generic network hint.
+
 ## [0.2.1] - 2026-11-12
 
 ### Added

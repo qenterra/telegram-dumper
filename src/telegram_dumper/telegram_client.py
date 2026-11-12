@@ -72,7 +72,7 @@ def _api_credentials(console: Console, preferred_api_id: str | None) -> tuple[in
             Panel(
                 "This client uses Telegram's MTProto API to read chats available to your account.\n"
                 "Get an API ID and API hash from [link=https://my.telegram.org/apps]my.telegram.org/apps[/link].\n"
-                "The hash is entered privately and saved in the system credential store.",
+                "The API hash is shown while you type it, then saved in the system credential store.",
                 title="[bold cyan]Telegram API setup[/bold cyan]",
                 border_style="cyan",
                 expand=False,
@@ -98,7 +98,7 @@ def _api_credentials(console: Console, preferred_api_id: str | None) -> tuple[in
     if api_id <= 0:
         raise RuntimeError("The Telegram API ID must be greater than zero.")
     if not api_hash and sys.stdin.isatty():
-        api_hash = Prompt.ask("API hash", password="*").strip()
+        api_hash = Prompt.ask("API hash").strip()
     if not api_hash:
         raise RuntimeError("The Telegram API hash cannot be empty.")
 
