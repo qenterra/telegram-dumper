@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
+from pathlib import Path
 
 import keyring
 from rich.console import Console
