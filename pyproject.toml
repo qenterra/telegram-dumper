@@ -12,7 +12,7 @@ license = "LicenseRef-Proprietary"
 dependencies = [
   "Telethon>=1.45,<2",
   "keyring>=25,<26",
-  "rich>=14,<15",
+  "rich>=14,<16",
 ]
 
 [project.scripts]
