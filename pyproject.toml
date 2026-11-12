@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75,<81"]
+requires = ["setuptools>=77,<81"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A terminal client for downloading permitted media and files from Telegram chats."
 readme = "README.md"
 requires-python = ">=3.12"
-license = "LicenseRef-Proprietary"
+license = "MIT"
 dependencies = [
   "Telethon>=1.45,<2",
   "keyring>=25,<26",

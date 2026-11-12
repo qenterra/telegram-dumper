@@ -2,16 +2,16 @@
 
 ## Ownership and cadence
 
-Nikita Melnychenko (QenTerra) owns repository maintenance. This private project has no scheduled
+Nikita Melnychenko (QenTerra) owns repository maintenance. This public project has no scheduled
 release cadence; review dependencies and access when preparing a change or release.
 
 ## Routine review
 
 - Weekly or event-driven: triage security alerts, dependency updates, failed workflows, support requests, and release blockers.
 - Monthly: review stale issues and pull requests, flaky checks, documentation drift, dependency removals, generated artifacts, and support status.
-- Quarterly: verify ownership, branch and tag rules, GitHub features, topics, security settings, private contacts, license notices, Wiki projection, and recovery instructions.
+- Quarterly: verify ownership, branch and tag rules, GitHub features, topics, security settings, support contacts, license notices, Wiki projection, and recovery instructions.
 - Before every release: follow `docs/releasing.md` against the exact release commit.
-- Before every public push: audit the canonical checkout and a fresh clean clone for private operational artifacts, caches, ignored debris, and undeclared generated output.
+- Before every release: audit the canonical checkout and a fresh clean clone for operational artifacts, caches, ignored debris, and undeclared generated output.
 
 ## Dependency and security lifecycle
 

@@ -1,6 +1,6 @@
 # Retention and disposal
 
-The private repository contains source and documentation only. Downloaded Telegram media remains in
+The public repository contains source and documentation only. Downloaded Telegram media remains in
 the folder chosen by the user; the program does not delete or expire those files.
 
 The Telegram authorisation session remains in the operating-system credential store until the user

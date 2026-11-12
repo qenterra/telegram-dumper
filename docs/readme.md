@@ -4,6 +4,7 @@
 
 - [Project README](../README.md)
 - [Development setup](development.md)
+- [Installation](installation.md)
 - [Command reference](command-reference.md)
 - [Configuration](configuration.md)
 - [Data classification](data-classification.md)

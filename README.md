@@ -4,10 +4,10 @@ A terminal client for downloading media from Telegram chats your account can acc
 
 [Commands](docs/command-reference.md) · [Configuration](docs/configuration.md) · [Architecture](docs/architecture.md)
 
-## Status and access
+## Status and requirements
 
-Early development. This is a private QenTerra repository, licensed for internal use only. No package
-or binary release is available. Requires Python 3.12+, a Telegram API application ID and hash from
+Early development. This is a public QenTerra repository under the MIT License. No package or binary
+release is available. Requires Python 3.12+, a Telegram API application ID and hash from
 [my.telegram.org](https://my.telegram.org), and an account that can access the source chat.
 
 Owner: Nikita Melnychenko (QenTerra).
@@ -23,24 +23,22 @@ Owner: Nikita Melnychenko (QenTerra).
 
 ## Install and quick start
 
-Install `pipx` and GitHub CLI (`gh`), then sign in to GitHub with an account that can read this
-private repository. On macOS with Homebrew:
+Install `pipx` if it is not already available. On macOS with Homebrew:
 
 ```sh
-brew install pipx gh
+brew install pipx
 pipx ensurepath
 ```
 
-Open a new terminal after `pipx ensurepath`, then install and run the CLI with:
+Open a new terminal after `pipx ensurepath`, then install the latest version and start it:
 
 ```sh
-gh auth setup-git && pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'
+pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'
 telegram-dumper
 ```
 
-`gh auth setup-git` configures Git to use your existing GitHub CLI login when pipx fetches the
-private repository. It does not expose or put your token in the command. To update or remove the
-installation later:
+The full [installation guide](docs/installation.md) includes setup, updates, and removal. To update
+or remove the installation later:
 
 ```sh
 pipx upgrade telegram-dumper
@@ -81,9 +79,16 @@ Read [Data classification](docs/data-classification.md), [Retention](docs/retent
 [Security](SECURITY.md). A partial file may remain if a download is interrupted; inspect it locally
 before retrying. Existing filenames are skipped to avoid overwriting files.
 
+## Commands and configuration
+
+- [Command reference](docs/command-reference.md)
+- [Configuration](docs/configuration.md)
+- [Troubleshooting](docs/troubleshooting.md)
+
 ## Documentation
 
 - [Command reference](docs/command-reference.md)
+- [Installation](docs/installation.md)
 - [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
 - [Development](docs/development.md)
@@ -100,4 +105,4 @@ compilation. This does not prove that a Telegram login or live media transfer su
 
 ## License
 
-Copyright © 2026 Nikita Melnychenko (QenTerra). All rights reserved unless a separate written agreement states otherwise.
+Copyright © 2026 Nikita Melnychenko (QenTerra). Distributed under the terms of the [MIT License](LICENSE).
