@@ -6,10 +6,11 @@
 telegram-dumper [--version]
 telegram-dumper
 telegram-dumper accounts [add | select <account-id> | remove <account-id>]
-telegram-dumper download <link> [--types <list>] [--out <folder>] [--limit <count>] [--account <account-id>]
+telegram-dumper download <link> [--types <list>] [--extensions <list>] [--out <folder>] [--limit <count>] [--account <account-id>]
 ```
 
-Run `telegram-dumper` without a command to open the guided terminal flow.
+Run `telegram-dumper` without a command to open the home menu. Choose Downloads, Accounts, or
+Settings; nested menus include a Back option.
 
 ## Commands
 
@@ -32,6 +33,10 @@ present in its Telegram dialogs. Invite links are not joined automatically.
 On first use, the guided flow can open Telegram's API application page. API hashes and account
 sessions are stored in the operating-system credential store. The local account list contains only
 account IDs, display names, usernames, and the active selection.
+
+The home menu's Settings section saves default categories, extensions, and download folder locally.
+Use `--extensions .png,.jpg,.zip` to match those original file extensions directly. Omit the filter
+or use `all` to include every file format.
 
 ## Output and exit status
 

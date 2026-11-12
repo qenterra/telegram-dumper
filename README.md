@@ -30,15 +30,17 @@ Install directly with Homebrew. This taps the formula from this repository and i
 brew tap qenterra/telegram-dumper https://github.com/QenTerra/telegram-dumper.git && brew install qenterra/telegram-dumper/telegram-dumper
 ```
 
-Then start the guided setup:
+Then open the interactive menu:
 
 ```sh
 telegram-dumper
 ```
 
 See the [installation guide](docs/installation.md) for updates, removal, and the pipx alternative.
-On first run, the CLI can open Telegram's API setup page, collect the API ID/hash, and store them
-securely. It then guides you through Telegram account sign-in.
+The menu provides download, account, and settings sections, with a back option in each submenu.
+You can set default file categories, extensions such as `.png`, `.jpg`, or `.zip`, and the download
+folder. Settings are saved locally. On first sign-in, the CLI can open Telegram's API setup page,
+collect the API ID/hash, and store them securely.
 
 Start the guided terminal flow:
 
@@ -49,11 +51,11 @@ telegram-dumper
 Or pass a link directly:
 
 ```sh
-telegram-dumper download 'https://t.me/example/123' --types photo,video --out ./downloads
+telegram-dumper download 'https://t.me/example/123' --types all --extensions .png,.zip --out ./downloads
 ```
 
-The tool keeps Telegram's original file formats. `--types` filters media categories; it does not
-convert files.
+The tool keeps Telegram's original file formats. `--types` filters media categories and
+`--extensions` filters filename extensions; neither converts files.
 
 ## Protection and privacy
 

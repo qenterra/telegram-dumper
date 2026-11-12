@@ -44,5 +44,9 @@ session strings.
 - `--out`: local output folder. Defaults to `telegram-downloads` in the current directory.
 - `--limit`: maximum number of messages to scan.
 - `--account`: saved account ID to use for one download instead of the active account.
+- `--extensions`: comma-separated filename extensions, such as `.png,.jpg,.zip`; defaults to `all`.
 
-Command-line options override interactive prompts. There is no project or global configuration file.
+The interactive menu's Settings section stores default media categories, file extensions, and
+download folder in `settings.json` under the user's application configuration directory. This file
+contains preferences only, not Telegram credentials or session data. Command-line options override
+interactive defaults.

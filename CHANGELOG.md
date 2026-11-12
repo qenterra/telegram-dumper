@@ -4,6 +4,14 @@ All notable changes to telegram-dumper are documented here. This project follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-12
+
+### Added
+
+- A home menu with download, account, settings, back, and exit actions.
+- Persistent default download folder, media categories, and file-extension filters.
+- Direct extension selection for files such as `.png`, `.jpg`, `.zip`, and `.pdf`.
+
 ### Added
 
 - Initial terminal CLI scaffold with Telegram link parsing, media category filters, local downloads,

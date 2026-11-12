@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-def _config_directory() -> Path:
+def config_directory() -> Path:
     if os.name == "nt":
         return Path(os.environ.get("APPDATA", Path.home())) / "telegram-dumper"
     if sys.platform == "darwin":
@@ -20,7 +20,7 @@ def _config_directory() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "telegram-dumper"
 
 
-def _restrict_permissions(path: Path, *, directory: bool) -> None:
+def restrict_permissions(path: Path, *, directory: bool) -> None:
     if os.name == "nt":
         username = getpass.getuser()
         domain = os.environ.get("USERDOMAIN")
@@ -51,7 +51,7 @@ class AccountRegistry:
     """Store account labels and selection; account sessions remain in the keyring."""
 
     def __init__(self, path: Path | None = None) -> None:
-        self.path = path or (_config_directory() / "accounts.json")
+        self.path = path or (config_directory() / "accounts.json")
 
     def load(self) -> dict[str, Any]:
         if not self.path.exists():
@@ -161,7 +161,7 @@ class AccountRegistry:
     def _write(self, data: dict[str, Any]) -> None:
         directory = self.path.parent
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-        _restrict_permissions(directory, directory=True)
+        restrict_permissions(directory, directory=True)
 
         descriptor, temporary_name = tempfile.mkstemp(prefix=".accounts-", dir=directory)
         temporary_path = Path(temporary_name)
@@ -174,7 +174,7 @@ class AccountRegistry:
                 output.flush()
                 os.fsync(output.fileno())
             os.replace(temporary_path, self.path)
-            _restrict_permissions(self.path, directory=False)
+            restrict_permissions(self.path, directory=False)
         except Exception:
             temporary_path.unlink(missing_ok=True)
             raise

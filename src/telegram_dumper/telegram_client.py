@@ -142,6 +142,7 @@ class TelegramDownloader:
         output_dir: Path,
         categories: set[str],
         limit: int | None = None,
+        extensions: list[str] | None = None,
     ) -> tuple[int, int]:
         output_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
         if not self.has_saved_session and not sys.stdin.isatty():
@@ -258,7 +259,12 @@ class TelegramDownloader:
                         continue
 
                     default_name = f"telegram-{message.id}{getattr(file_info, 'ext', '') or ''}"
-                    filename = _safe_name(getattr(file_info, "name", None) or default_name, message.id)
+                    original_name = getattr(file_info, "name", None) or default_name
+                    if extensions and "all" not in extensions and not any(
+                        original_name.lower().endswith(extension) for extension in extensions
+                    ):
+                        continue
+                    filename = _safe_name(original_name, message.id)
                     target = output_dir / filename
                     if target.exists():
                         self.console.print(f"[dim]Skipped existing file {filename}[/dim]")
@@ -291,10 +297,11 @@ def run_download(
     categories: set[str],
     limit: int | None = None,
     account_id: str | None = None,
+    extensions: list[str] | None = None,
 ) -> tuple[int, int]:
     console = Console()
     downloader = TelegramDownloader(console, account_id)
-    return asyncio.run(downloader.run(source, output_dir, categories, limit))
+    return asyncio.run(downloader.run(source, output_dir, categories, limit, extensions))
 
 
 async def _add_account(console: Console) -> str:
