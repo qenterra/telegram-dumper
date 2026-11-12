@@ -36,7 +36,7 @@ Then open the interactive menu:
 telegram-dumper
 ```
 
-See the [installation guide](docs/installation.md) for updates, removal, and the pipx alternative.
+See the [installation guide](docs/installation.md) for updates and removal.
 The menu provides download, account, and settings sections, with a back option in each submenu.
 You can set default file categories, extensions such as `.png`, `.jpg`, or `.zip`, and the download
 folder. Settings are saved locally. On first sign-in, the CLI can open Telegram's API setup page,

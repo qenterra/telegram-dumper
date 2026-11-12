@@ -19,24 +19,7 @@ brew upgrade qenterra/telegram-dumper/telegram-dumper
 brew uninstall qenterra/telegram-dumper/telegram-dumper
 ```
 
-## Install with pipx
-
-If you prefer pipx, install it with Homebrew and add its app directory to your `PATH`:
-
-```sh
-brew install pipx
-pipx ensurepath
-```
-
-Open a new terminal after `pipx ensurepath`, then run:
-
-```sh
-pipx install 'git+https://github.com/QenTerra/telegram-dumper.git'
-```
-
-On other systems, follow the [pipx installation guide](https://pipx.pypa.io/stable/installation/).
-
-Then start the guided setup:
+Then open the interactive menu:
 
 ```sh
 telegram-dumper
@@ -60,16 +43,17 @@ contains only account identifiers, display names, usernames, and the active sele
 
 ## Update or uninstall
 
-Install the latest version:
+Update Homebrew and install the latest version:
 
 ```sh
-pipx upgrade telegram-dumper
+brew update
+brew upgrade telegram-dumper
 ```
 
-Remove the command and its isolated environment:
+Remove the Homebrew installation:
 
 ```sh
-pipx uninstall telegram-dumper
+brew uninstall telegram-dumper
 ```
 
 Uninstalling the CLI does not remove saved API credentials, Telegram sessions, the local account
