@@ -4,6 +4,10 @@ All notable changes to telegram-dumper are documented here. This project follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Use Rich's synchronous progress context manager inside the asynchronous download flow.
+
 ### Changed
 
 - API hash input is visible while typing; the hash is still stored in the operating-system credential store.

@@ -261,7 +261,7 @@ class TelegramDownloader:
 
             messages = [source.message_id] if source.message_id is not None else None
             downloaded = skipped = 0
-            async with Progress(
+            with Progress(
                 TextColumn("[bold cyan]{task.description}"),
                 BarColumn(),
                 DownloadColumn(),
