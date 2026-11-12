@@ -8,6 +8,7 @@ Thumbs.db
 !.env.example
 *.key
 *.pem
+telegram-downloads/
 
 # Logs, coverage, caches, and temporary output
 *.log

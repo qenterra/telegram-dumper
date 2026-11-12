@@ -4,6 +4,10 @@
 
 - [Project README](../README.md)
 - [Development setup](development.md)
+- [Command reference](command-reference.md)
+- [Configuration](configuration.md)
+- [Data classification](data-classification.md)
+- [Retention](retention.md)
 - [Testing](testing.md)
 - [Troubleshooting](troubleshooting.md)
 - [Repository maintenance](maintenance.md)
